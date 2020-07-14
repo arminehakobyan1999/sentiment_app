@@ -26,7 +26,7 @@ class TweetLoader:
     def api(self):
         auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
         auth.set_access_token(self.access_token, self.access_token_secret)
-        api = tweepy.API(auth)
+        api = tweepy.API(auth, wait_on_rate_limit=True)
         return api
     
     def get_data(self):
