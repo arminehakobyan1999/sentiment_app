@@ -104,7 +104,7 @@ def hashtag(hashtag):
     predict_model.histogram(data)
 
 
-app = Flask(__name__, static_folder="./static")
+app = Flask(__name__)
 
 @app.route('/')
 def index():
