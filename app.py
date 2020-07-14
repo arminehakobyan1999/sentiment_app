@@ -7,7 +7,6 @@ import re
 import plotly.express as px
 from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
-import matplotlib.pyplot as plt
 from flask import Flask, request, redirect, render_template,jsonify
 
 
@@ -88,15 +87,11 @@ class PredictionVisualization:
         model_predict = self.predict(data)
         fig = px.histogram(model_predict)
         fig.show()
-        # plt.hist(model_predict)
-        # plt.savefig('static/plot.png')
 
 
 def hashtag(hashtag):    
-    # tweetloader = TweetLoader(hashtag, "2005-01-01")
-    # data = tweetloader.get_data()
-    data = pd.read_csv("train.csv", header=None, encoding='latin-1')[5]
-    data = data.sample(100)       
+    tweetloader = TweetLoader(hashtag, "2005-01-01")
+    data = tweetloader.get_data()       
     cleaner = Clean(data)
     cleaner.clean_data()
     cleaner.tokenizer_porter()
@@ -115,9 +110,6 @@ app = Flask(__name__, static_folder="./static")
 def index():
 	return render_template("home.html")
 
-# @app.route("/plot")
-# def plot():
-# 	return render_template("plot.html")
 
 @app.route('/hashtag', methods=['GET','POST'])
 def my_form_post():
