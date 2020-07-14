@@ -2,7 +2,6 @@ import tweepy
 import pickle
 import numpy as np
 import pandas as pd
-import csv
 import re
 import plotly.express as px
 from bs4 import BeautifulSoup
@@ -80,7 +79,6 @@ class PredictionVisualization:
     def predict(self, data):
         vectorized_data = self.tfidf.transform(self.count.transform(data))
         model_predict = self.model.predict(vectorized_data)
-        print(model_predict.shape)
         return model_predict
     
     def histogram(self, data):
