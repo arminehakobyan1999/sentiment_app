@@ -3,39 +3,46 @@ import pickle
 import numpy as np
 import pandas as pd
 import re
+from tqdm import tqdm
 import plotly.express as px
 from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
 from flask import Flask, request, redirect, render_template,jsonify
 
 
-class TweetLoader:
-    def __init__(self, hashtag, start_time, consumer_key = '5oO181JGmNWqln0n5rozTxzy7',
+class Api:
+    def __init__(self, consumer_key = '5oO181JGmNWqln0n5rozTxzy7',
                  consumer_secret = '1GvpNMRURMRBJ5sOsHoB0MdxqmD365HKRBKyyptvvIWbP2ZlqX',
                  access_token = '1277638295737032710-WVsABPkBUofg0z3yH6g0iTWBBx0ywZ',
                  access_token_secret = 'hH6lW7UzzX0OyU6QMEfhOWM6E2brqEU35YGzgcS0BXmmE', 
                  ):
-        self.hashtag = hashtag
-        self.start_time = start_time
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.access_token = access_token
         self.access_token_secret = access_token_secret
         
+    @property
     def api(self):
         auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
         auth.set_access_token(self.access_token, self.access_token_secret)
         api = tweepy.API(auth, wait_on_rate_limit=True)
         return api
-    
-    def get_data(self):
-        api = self.api()
-        t = []
-        for tweet in tweepy.Cursor(api.search, q = self.hashtag, count=100, lang="en", since=self.start_time).items():
-            t.append(tweet.text)
-        tweets = pd.DataFrame(t, columns=['tweets']) 
-        return tweets['tweets']
+        
+class TweetLoader:
+    def __init__(self, api, hashtag ):
+        self.hashtag = hashtag
+        self.api = api
 
+    def get_data(self):
+        t = []
+        print("Collecting tweets for ", self.hashtag)
+        for tweet in tweepy.Cursor(self.api.search, q = self.hashtag, count=100, lang="en", since="2020-01-01").items():
+            t.append(tweet.text)
+        tweets = pd.DataFrame(t, columns=['tweets'])
+        print("Data is ready")
+        print(tweets.shape)
+        return tweets['tweets']
+         
 
 class Clean:
     def __init__(self, tweets):
@@ -66,54 +73,55 @@ class Clean:
         self.tweets = self.tweets.apply(self.tp)
         
     def delet_duplicates(self):
-        self.tweets = self.tweets.drop_duplicates() 
-        
+        self.tweets = self.tweets.drop_duplicates()
+        print("Duplicates are deleted")
 
 
 class PredictionVisualization:
-    def __init__(self, tfidf, count, model):
-        self.tfidf = tfidf
-        self.count = count
+    def __init__(self,  model):
         self.model = model 
         
     def predict(self, data):
-        vectorized_data = self.tfidf.transform(self.count.transform(data))
-        model_predict = self.model.predict(vectorized_data)
+        model_predict = np.argmax(self.model.predict_proba(data), axis=1)
+        model_predict = [i*'Positive' + (1-i)*'Negative' for i in model_predict]
         return model_predict
     
     def histogram(self, data):
         model_predict = self.predict(data)
+        print(model_predict)
         fig = px.histogram(model_predict)
         fig.show()
 
-
-def hashtag(hashtag):    
-    tweetloader = TweetLoader(hashtag, "2005-01-01")
+def hashtag(hashtag, api, model):
+    tweetloader = TweetLoader(api ,hashtag)
     data = tweetloader.get_data()       
     cleaner = Clean(data)
     cleaner.clean_data()
     cleaner.tokenizer_porter()
     cleaner.delet_duplicates()
-    count = pickle.load(open( "count", "rb" ))
-    tdidf = pickle.load(open( "tdidf", "rb" ))
-    logistic = pickle.load(open( "logistic", "rb" ))
-    predict_model = PredictionVisualization(tdidf,count,logistic)
-    predict_model.predict(data)
+    predict_model = PredictionVisualization(model)
     predict_model.histogram(data)
 
-
+    
 app = Flask(__name__)
+
+@app.before_first_request
+def call_api():
+    api = Api()
+    app.api = api.api
+    app.model = pickle.load(open("modell", "rb"))
+    print(app.model.__dir__())
 
 @app.route('/')
 def index():
-	return render_template("home.html")
+    return render_template("home.html")
 
 
 @app.route('/hashtag', methods=['GET','POST'])
 def my_form_post():
     text1 = request.form['text1']
-    hashtag(text1)
+    hashtag(text1, app.api, app.model)
     
 
 if __name__ == '__main__':
-	app.run(debug=True)
+    app.run(debug=True)
