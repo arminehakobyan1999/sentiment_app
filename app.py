@@ -2,12 +2,10 @@ import tweepy
 import pickle
 import numpy as np
 import pandas as pd
-import csv
 import re
 import plotly.express as px
 from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
-import matplotlib.pyplot as plt
 from flask import Flask, request, redirect, render_template,jsonify
 
 
@@ -27,7 +25,7 @@ class TweetLoader:
     def api(self):
         auth = tweepy.OAuthHandler(self.consumer_key, self.consumer_secret)
         auth.set_access_token(self.access_token, self.access_token_secret)
-        api = tweepy.API(auth)
+        api = tweepy.API(auth, wait_on_rate_limit=True)
         return api
     
     def get_data(self):
@@ -81,22 +79,17 @@ class PredictionVisualization:
     def predict(self, data):
         vectorized_data = self.tfidf.transform(self.count.transform(data))
         model_predict = self.model.predict(vectorized_data)
-        print(model_predict.shape)
         return model_predict
     
     def histogram(self, data):
         model_predict = self.predict(data)
         fig = px.histogram(model_predict)
         fig.show()
-        # plt.hist(model_predict)
-        # plt.savefig('static/plot.png')
 
 
 def hashtag(hashtag):    
-    # tweetloader = TweetLoader(hashtag, "2005-01-01")
-    # data = tweetloader.get_data()
-    data = pd.read_csv("train.csv", header=None, encoding='latin-1')[5]
-    data = data.sample(100)       
+    tweetloader = TweetLoader(hashtag, "2005-01-01")
+    data = tweetloader.get_data()       
     cleaner = Clean(data)
     cleaner.clean_data()
     cleaner.tokenizer_porter()
@@ -109,15 +102,12 @@ def hashtag(hashtag):
     predict_model.histogram(data)
 
 
-app = Flask(__name__, static_folder="./static")
+app = Flask(__name__)
 
 @app.route('/')
 def index():
 	return render_template("home.html")
 
-# @app.route("/plot")
-# def plot():
-# 	return render_template("plot.html")
 
 @app.route('/hashtag', methods=['GET','POST'])
 def my_form_post():
