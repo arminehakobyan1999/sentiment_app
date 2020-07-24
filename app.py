@@ -11,6 +11,7 @@ from flask import Flask, request, redirect, render_template,jsonify
 
 
 class Api:
+    """"This class create API."""
     def __init__(self, consumer_key = '5oO181JGmNWqln0n5rozTxzy7',
                  consumer_secret = '1GvpNMRURMRBJ5sOsHoB0MdxqmD365HKRBKyyptvvIWbP2ZlqX',
                  access_token = '1277638295737032710-WVsABPkBUofg0z3yH6g0iTWBBx0ywZ',
@@ -29,22 +30,31 @@ class Api:
         return api
         
 class TweetLoader:
+    """TweetLoder download tweets
+    Parameters
+    ------------
+    api : 'tweepy.api.API'
+    hashtag: str
+    """
     def __init__(self, api, hashtag ):
         self.hashtag = hashtag
         self.api = api
 
     def get_data(self):
         t = []
-        print("Collecting tweets for ", self.hashtag)
         for tweet in tweepy.Cursor(self.api.search, q = self.hashtag, count=100, lang="en", since="2020-01-01").items():
             t.append(tweet.text)
         tweets = pd.DataFrame(t, columns=['tweets'])
-        print("Data is ready")
-        print(tweets.shape)
         return tweets['tweets']
          
 
 class Clean:
+    """"Clean class is clean data
+    Parameters
+    ------------
+    tweets: Data Frame 
+    """
+
     def __init__(self, tweets):
         self.tweets = tweets
         pat1 = r'@[A-Za-z0-9]+'
@@ -74,10 +84,15 @@ class Clean:
         
     def delet_duplicates(self):
         self.tweets = self.tweets.drop_duplicates()
-        print("Duplicates are deleted")
-
+        
 
 class PredictionVisualization:
+    """PredictionVisualization 
+    Parameters
+    ------------
+    model: pickle file 
+    data: Data Frame
+    """
     def __init__(self,  model):
         self.model = model 
         
