@@ -16,9 +16,9 @@ Python 2.7, 3.5, 3.6, 3.7, & 3.8 are supported.
 ## How to run 
 In order for the code to work, we  must be written in the terminal this
 
-՝՝՝bash
-export FLASK_APP=hello
-flask run
+```bash
+ export FLASK_APP=hello
+ flask run
 ```
 
 
